@@ -248,6 +248,12 @@
       <div class="sub">LV1 / LV2 / LV3</div>
       <div id="plan-settings"></div>
     </div>
+    <div class="input-card">
+      <h3>逐日營收分布設定</h3>
+      <div class="sub">各天佔比（%），合計需為 100%，儲存後「逐日預估」自動更新</div>
+      <div id="daypct-settings" style="margin-top:8px"></div>
+      <div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">目前合計：<span id="daypct-total" style="font-weight:500">—</span></div>
+    </div>
     <button class="run-btn" onclick="saveSettings()"><i class="ti ti-settings" aria-hidden="true"></i> 儲存設定</button>
     <button class="run-btn" style="margin-left:8px;color:var(--text-danger)" onclick="resetAll()"><i class="ti ti-refresh" aria-hidden="true"></i> 重置所有數據</button>
   </div>
@@ -517,6 +523,28 @@ function renderPlanSettings() {
   ).join('');
 }
 
+function renderDayPctSettings() {
+  const days = getDays();
+  const weekdays = ["週日","週一","週二","週三","週四","週五","週六"];
+  document.getElementById("daypct-settings").innerHTML = days.map((d, i) => {
+    const date = new Date(config.startDate || "2026-06-23");
+    date.setDate(date.getDate() + i);
+    const wd = weekdays[date.getDay()];
+    return `<div class="input-row"><label style="min-width:90px">${d}（${wd}）</label><input type="number" id="dp-${i}" value="${Math.round((config.dayPct[i] || 0) * 100)}" min="0" max="100" step="1" style="width:70px" oninput="updateDayPctTotal()"><span style="font-size:13px;color:var(--text-secondary);margin-left:4px">%</span></div>`;
+  }).join("");
+  updateDayPctTotal();
+}
+
+function updateDayPctTotal() {
+  const days = getDays();
+  let total = 0;
+  days.forEach((_, i) => { total += parseFloat(document.getElementById("dp-" + i)?.value) || 0; });
+  const el = document.getElementById("daypct-total");
+  if (!el) return;
+  el.textContent = total.toFixed(0) + "%";
+  el.style.color = Math.abs(total - 100) < 0.5 ? "var(--text-success)" : "var(--text-danger)";
+}
+
 function applyData() {
   if (!appState.dailyData.qty) appState.dailyData.qty = {};
   config.plans.forEach(p => {
@@ -554,6 +582,14 @@ function saveSettings() {
     p.lv2 = parseInt(document.getElementById('ps-' + p.id + '-lv2')?.value) || p.lv2;
     p.lv3 = parseInt(document.getElementById('ps-' + p.id + '-lv3')?.value) || p.lv3;
   });
+  const newPct = [];
+  getDays().forEach((_, i) => {
+    const v = parseFloat(document.getElementById("dp-" + i)?.value) || 0;
+    newPct.push(Math.round(v) / 100);
+  });
+  const total = newPct.reduce((s, v) => s + v, 0);
+  if (Math.abs(total - 1) > 0.02) { alert("逐日分布合計為 " + Math.round(total * 100) + "%，請調整為 100% 再儲存。"); return; }
+  config.dayPct = newPct;
   save();
   renderDaySelect();
   updateDashboard();
@@ -588,6 +624,7 @@ function switchTab(t) {
     document.getElementById('s-lv3-qty').value = config.targets.lv3.qty;
     document.getElementById('s-lv3-rev').value = config.targets.lv3.rev;
     renderPlanSettings();
+    renderDayPctSettings();
   }
 }
 
