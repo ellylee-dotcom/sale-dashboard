@@ -184,13 +184,21 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
         </div>
         <div>
           <div class="ib-label">今日各時段營收（$）</div>
-          <div class="input-row"><label>凌晨 00:00–08:59</label><input type="number" id="i-h1" placeholder="0" min="0"></div>
-          <div class="input-row"><label>盤中 09:00–13:59</label><input type="number" id="i-h2" placeholder="0" min="0"></div>
-          <div class="input-row"><label>盤後 14:00–18:59</label><input type="number" id="i-h3" placeholder="0" min="0"></div>
-          <div class="input-row"><label>晚上 19:00–23:59</label><input type="number" id="i-h4" placeholder="0" min="0"></div>
+          <div class="input-row"><label>凌晨 00:00–08:59</label><input type="number" id="i-h1" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>盤中 09:00–13:59</label><input type="number" id="i-h2" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>盤後 14:00–18:59</label><input type="number" id="i-h3" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>晚上 19:00–23:59</label><input type="number" id="i-h4" placeholder="0" min="0" oninput="calcTotalRev()"></div>
           <div style="margin-top:12px">
-            <div class="ib-label">今日實際總營收（$）</div>
-            <div class="input-row"><label>今日總額</label><input type="number" id="i-today-rev" placeholder="0" min="0"></div>
+            <div class="ib-label">加價購營收（$）</div>
+            <div class="input-row"><label>加價購總額</label><input type="number" id="i-addon-rev" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          </div>
+          <div style="margin-top:12px;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px">
+            <div class="ib-label">今日實際總營收（自動加總）</div>
+            <div class="input-row" style="margin-bottom:0">
+              <label style="color:var(--text-secondary);font-size:12px">時段合計 + 加價購</label>
+              <span id="i-today-rev-display" style="font-size:16px;font-weight:500;color:var(--text-primary);min-width:100px;text-align:right">$0</span>
+            </div>
+            <input type="hidden" id="i-today-rev" value="0">
           </div>
         </div>
       </div>
@@ -578,7 +586,8 @@ function loadDayIntoForm(i) {
   document.getElementById('i-h2').value = d.hourRev?.['盤中'] || '';
   document.getElementById('i-h3').value = d.hourRev?.['盤後'] || '';
   document.getElementById('i-h4').value = d.hourRev?.['晚上'] || '';
-  document.getElementById('i-today-rev').value = d.totalRev || '';
+  document.getElementById('i-addon-rev').value = d.addonRev || '';
+  calcTotalRev();
 }
 
 function setDay(i) {
@@ -611,6 +620,19 @@ function renderQtyInputs() {
   ).join('');
 }
 
+function calcTotalRev() {
+  const h1 = parseFloat(document.getElementById('i-h1')?.value) || 0;
+  const h2 = parseFloat(document.getElementById('i-h2')?.value) || 0;
+  const h3 = parseFloat(document.getElementById('i-h3')?.value) || 0;
+  const h4 = parseFloat(document.getElementById('i-h4')?.value) || 0;
+  const addon = parseFloat(document.getElementById('i-addon-rev')?.value) || 0;
+  const total = h1 + h2 + h3 + h4 + addon;
+  const display = document.getElementById('i-today-rev-display');
+  const hidden = document.getElementById('i-today-rev');
+  if (display) display.textContent = '$' + Math.round(total).toLocaleString('zh-TW');
+  if (hidden) hidden.value = total;
+}
+
 function applyData() {
   const i = appState.currentDay;
   if (!appState.days[i]) appState.days[i] = { qty: {}, hourRev: {}, totalRev: 0 };
@@ -624,7 +646,8 @@ function applyData() {
     '盤後': parseFloat(document.getElementById('i-h3').value) || 0,
     '晚上': parseFloat(document.getElementById('i-h4').value) || 0,
   };
-  appState.days[i].totalRev = parseFloat(document.getElementById('i-today-rev').value) || 0;
+  appState.days[i].totalRev = parseFloat(document.getElementById('i-today-rev')?.value) || 0;
+  appState.days[i].addonRev = parseFloat(document.getElementById('i-addon-rev')?.value) || 0;
   save();
   updateDashboard();
   renderDaySelect();
