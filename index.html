@@ -128,10 +128,10 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
   <!-- 追蹤監控 -->
   <div id="tab-track" class="tab-panel active">
     <div class="metric-row">
+      <div class="metric-card"><div class="label">活動進行天數</div><div class="value" id="m-day">0天</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-day-bar"></div></div><div class="sub" id="m-day-sub">共N天</div></div>
       <div class="metric-card"><div class="label">累計營收</div><div class="value" id="m-rev">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-rev-bar"></div></div><div class="sub" id="m-rev-sub">尚未填入</div></div>
       <div class="metric-card"><div class="label">累計套數</div><div class="value" id="m-qty">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-qty-bar"></div></div><div class="sub" id="m-qty-sub">尚未填入</div></div>
-      <div class="metric-card"><div class="label">已填天數</div><div class="value" id="m-day">0天</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-day-bar"></div></div><div class="sub" id="m-day-sub">共N天</div></div>
-      <div class="metric-card"><div class="label">預估終值</div><div class="value" id="m-proj">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-proj-bar"></div></div><div class="sub" id="m-proj-sub">以日均推算</div></div>
+      <div class="metric-card"><div class="label">預估總營收</div><div class="value" id="m-proj">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-proj-bar"></div></div><div class="sub" id="m-proj-sub">以日均推算</div></div>
     </div>
     <div class="section-title">重點方案</div>
     <div class="plans-grid" id="plans-grid"></div>
@@ -139,7 +139,7 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
     <div class="other-grid" id="other-grid"></div>
     <div class="hour-section">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:500">日內時段分布</div>
+        <div style="font-size:13px;font-weight:500">日內時段營收</div>
         <div style="font-size:12px;color:var(--text-secondary)">查看日期：<span id="today-date">—</span>
           <button onclick="prevDay()" style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;font-family:var(--font)">‹</button>
           <button onclick="nextDay()" style="margin-left:4px;font-size:11px;padding:2px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;font-family:var(--font)">›</button>
@@ -404,7 +404,7 @@ function updateDashboard() {
   document.getElementById('m-rev').textContent = totalRev ? fmtMoney(totalRev) : '—';
   document.getElementById('m-qty').textContent = tq || '—';
   document.getElementById('m-day').textContent = dwd + '天';
-  document.getElementById('m-day-sub').textContent = '已填 ' + dwd + '/' + config.totalDays + ' 天';
+  document.getElementById('m-day-sub').textContent = '累計至第 ' + dwd + ' 天（共' + config.totalDays + '天）';
   document.getElementById('m-proj').textContent = totalRev ? fmtMoney(projRev) : '—';
   document.getElementById('today-date').textContent = getDayLabel(appState.currentDay);
 
@@ -427,7 +427,7 @@ function updateDashboard() {
 
     const qr = tQty ? tq / tQty : 0;
     const qtySub = document.getElementById('m-qty-sub');
-    qtySub.textContent = pct(tq, tQty) + ' of ' + sc.toUpperCase() + ' 目標';
+    qtySub.textContent = 'LV1目標達成率 ' + pct(tq, config.targets.lv1.qty);
     qtySub.className = 'sub ' + clrClass(qr);
     const qtyExpRatio = expPct ? qr / expPct : 0;
     const qtyBar = document.getElementById('m-qty-bar');
@@ -435,7 +435,7 @@ function updateDashboard() {
 
     const pr = projRev / tRev;
     const projSub = document.getElementById('m-proj-sub');
-    projSub.textContent = Math.round(pr * 100) + '% of LV1目標';
+    projSub.textContent = 'LV1目標達成率 ' + Math.round(pr * 100) + '%';
     projSub.className = 'sub ' + clrClass(pr);
     const projBar = document.getElementById('m-proj-bar');
     if (projBar) { projBar.style.width = Math.min(100, Math.round(pr * 100)) + '%'; projBar.style.background = barClr(pr); }
@@ -833,8 +833,10 @@ function parseHourPctPaste() {
       const n = parseFloat(c.replace('%', '').trim());
       if (!isNaN(n) && n >= 0 && n <= 100) nums.push(n);
     }
+    // 從最後四個數值取（忽略前面多餘的日期/文字欄）
     if (nums.length >= 4) {
-      parsed.push({ '凌晨': nums[0] / 100, '盤中': nums[1] / 100, '盤後': nums[2] / 100, '晚上': nums[3] / 100 });
+      const last4 = nums.slice(-4);
+      parsed.push({ '凌晨': last4[0] / 100, '盤中': last4[1] / 100, '盤後': last4[2] / 100, '晚上': last4[3] / 100 });
     }
   }
 
