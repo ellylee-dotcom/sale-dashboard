@@ -36,6 +36,8 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
 .metric-card .label{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
 .metric-card .value{font-size:20px;font-weight:500;color:var(--text-primary)}
 .metric-card .sub{font-size:12px;margin-top:3px;color:var(--text-tertiary)}
+.metric-bar-wrap{background:var(--bg-tertiary);border-radius:3px;height:4px;overflow:hidden;margin:6px 0 3px}
+.metric-bar{height:4px;border-radius:3px;width:0;transition:width .3s}
 .section-title{font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
 .plans-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
 .other-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
@@ -126,10 +128,10 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
   <!-- 追蹤監控 -->
   <div id="tab-track" class="tab-panel active">
     <div class="metric-row">
-      <div class="metric-card"><div class="label">累計營收</div><div class="value" id="m-rev">—</div><div class="sub" id="m-rev-sub">尚未填入</div></div>
-      <div class="metric-card"><div class="label">累計套數</div><div class="value" id="m-qty">—</div><div class="sub" id="m-qty-sub">尚未填入</div></div>
-      <div class="metric-card"><div class="label">已填天數</div><div class="value" id="m-day">0天</div><div class="sub" id="m-day-sub">共N天</div></div>
-      <div class="metric-card"><div class="label">預估終值</div><div class="value" id="m-proj">—</div><div class="sub" id="m-proj-sub">以日均推算</div></div>
+      <div class="metric-card"><div class="label">累計營收</div><div class="value" id="m-rev">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-rev-bar"></div></div><div class="sub" id="m-rev-sub">尚未填入</div></div>
+      <div class="metric-card"><div class="label">累計套數</div><div class="value" id="m-qty">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-qty-bar"></div></div><div class="sub" id="m-qty-sub">尚未填入</div></div>
+      <div class="metric-card"><div class="label">已填天數</div><div class="value" id="m-day">0天</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-day-bar"></div></div><div class="sub" id="m-day-sub">共N天</div></div>
+      <div class="metric-card"><div class="label">預估終值</div><div class="value" id="m-proj">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-proj-bar"></div></div><div class="sub" id="m-proj-sub">以日均推算</div></div>
     </div>
     <div class="section-title">重點方案</div>
     <div class="plans-grid" id="plans-grid"></div>
@@ -162,8 +164,9 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
     </div>
     <div id="forecast-bars"></div>
     <div class="divider"></div>
-    <div style="font-size:13px;font-weight:500;margin-bottom:10px">時段分布參考</div>
-    <div class="hour-grid" id="hour-ref-grid"></div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">逐日時段分布預估</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">每日各時段的預估佔比與營收金額（連動「活動設定」的逐日時段分布）</div>
+    <div id="hour-daily-table" style="overflow-x:auto"></div>
     <div class="history-note" id="history-note"></div>
   </div>
 
@@ -247,6 +250,19 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
       <div id="daypct-settings" style="margin-top:8px"></div>
       <div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">目前合計：<span id="daypct-total" style="font-weight:500">—</span></div>
     </div>
+    <div class="input-card">
+      <h3>逐日時段分布設定</h3>
+      <div class="sub">從 Excel / Google Sheets 複製整個表格後，直接貼上到下方文字框，系統自動解析。<br>格式：第一欄為日期、後四欄依序為凌晨、盤中、盤後、晚上的佔比（%數字，不含%符號）</div>
+      <div style="margin-top:10px;margin-bottom:8px">
+        <div class="ib-label">貼上資料（支援 Excel / Google Sheets 直接複製貼上）</div>
+        <textarea id="hourpct-paste" rows="10" style="width:100%;font-size:12px;font-family:monospace;padding:8px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);resize:vertical;line-height:1.6" placeholder="直接從試算表複製貼上，例如：&#10;06/23 星期二	10%	25%	31%	34%&#10;06/24 星期三	30%	18%	17%	35%&#10;（支援有無%符號、有無日期欄、任意空白/Tab分隔）"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button class="run-btn" style="margin-top:0" onclick="parseHourPctPaste()"><i class="ti ti-table-import" aria-hidden="true"></i> 解析貼上的資料</button>
+          <span id="hourpct-parse-status" style="font-size:12px;color:var(--text-secondary)"></span>
+        </div>
+      </div>
+      <div id="hourpct-table-wrap" style="margin-top:14px;overflow-x:auto"></div>
+    </div>
     <button class="run-btn" onclick="saveSettings()"><i class="ti ti-settings" aria-hidden="true"></i> 儲存設定</button>
     <button class="run-btn" style="margin-left:8px;color:var(--text-danger)" onclick="resetAll()"><i class="ti ti-refresh" aria-hidden="true"></i> 重置所有數據</button>
   </div>
@@ -271,7 +287,17 @@ const DEFAULT_CONFIG = {
     { id: 'addon', name: '加價購', lv1: 100, lv2: 120, lv3: 145, primary: false },
   ],
   dayPct: [0.12, 0.11, 0.12, 0.09, 0.04, 0.05, 0.18, 0.29],
-  hourPct: { '凌晨': 0.14, '盤中': 0.27, '盤後': 0.24, '晚上': 0.35 }
+  hourPct: { '凌晨': 0.14, '盤中': 0.27, '盤後': 0.24, '晚上': 0.35 },
+  dayHourPct: [
+    { '凌晨': 0.10, '盤中': 0.25, '盤後': 0.31, '晚上': 0.34 },
+    { '凌晨': 0.30, '盤中': 0.18, '盤後': 0.17, '晚上': 0.35 },
+    { '凌晨': 0.24, '盤中': 0.27, '盤後': 0.15, '晚上': 0.34 },
+    { '凌晨': 0.13, '盤中': 0.37, '盤後': 0.30, '晚上': 0.21 },
+    { '凌晨': 0.20, '盤中': 0.19, '盤後': 0.22, '晚上': 0.39 },
+    { '凌晨': 0.32, '盤中': 0.05, '盤後': 0.05, '晚上': 0.58 },
+    { '凌晨': 0.16, '盤中': 0.19, '盤後': 0.19, '晚上': 0.46 },
+    { '凌晨': 0.11, '盤中': 0.13, '盤後': 0.26, '晚上': 0.50 }
+  ]
 };
 
 let config = JSON.parse(localStorage.getItem('dashConfig') || 'null') || JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -382,6 +408,10 @@ function updateDashboard() {
   document.getElementById('m-proj').textContent = totalRev ? fmtMoney(projRev) : '—';
   document.getElementById('today-date').textContent = getDayLabel(appState.currentDay);
 
+  // 已填天數進度條（中性藍）
+  const dayBar = document.getElementById('m-day-bar');
+  if (dayBar) { dayBar.style.width = Math.round(dwd / config.totalDays * 100) + '%'; dayBar.style.background = 'var(--text-info)'; }
+
   if (totalRev && lfd >= 0) {
     const expPct = elapsedExpectedPct(lfd);
     const actPct = totalRev / tRev;
@@ -390,15 +420,25 @@ function updateDashboard() {
     revSub.textContent = (diff >= 0 ? '+' : '') + diff + '% vs 預期進度';
     revSub.className = 'sub ' + (diff >= 0 ? 'c-green' : 'c-red');
 
+    // 累計營收進度條：以「實際 vs 預期進度」比值上色，寬度為達成 LV1 的百分比
+    const revRatio = expPct ? actPct / expPct : 0;
+    const revBar = document.getElementById('m-rev-bar');
+    if (revBar) { revBar.style.width = Math.min(100, Math.round(actPct * 100)) + '%'; revBar.style.background = barClr(revRatio); }
+
     const qr = tQty ? tq / tQty : 0;
     const qtySub = document.getElementById('m-qty-sub');
     qtySub.textContent = pct(tq, tQty) + ' of ' + sc.toUpperCase() + ' 目標';
     qtySub.className = 'sub ' + clrClass(qr);
+    const qtyExpRatio = expPct ? qr / expPct : 0;
+    const qtyBar = document.getElementById('m-qty-bar');
+    if (qtyBar) { qtyBar.style.width = Math.min(100, Math.round(qr * 100)) + '%'; qtyBar.style.background = barClr(qtyExpRatio); }
 
     const pr = projRev / tRev;
     const projSub = document.getElementById('m-proj-sub');
     projSub.textContent = Math.round(pr * 100) + '% of LV1目標';
     projSub.className = 'sub ' + clrClass(pr);
+    const projBar = document.getElementById('m-proj-bar');
+    if (projBar) { projBar.style.width = Math.min(100, Math.round(pr * 100)) + '%'; projBar.style.background = barClr(pr); }
 
     const overall = expPct ? actPct / expPct : 0;
     const os = document.getElementById('overall-status');
@@ -427,15 +467,21 @@ function renderPlans() {
     const expTarget = Math.round(target * expPct);
     const ratio = expTarget ? actual / expTarget : 0;
     const barW = Math.min(100, target ? Math.round(actual / target * 100) : 0);
+    const pctOfTarget = target ? Math.round(actual / target * 100) : 0;
+    const vsExp = expTarget ? Math.round((actual / expTarget - 1) * 100) : 0;
+    const vsExpStr = actual ? (vsExp >= 0 ? '+' + vsExp : vsExp) + '% vs 預期' : '';
     return `<div class="plan-card">
       <div class="plan-name">${p.name}</div>
       <div class="plan-target">${sc.toUpperCase()} 目標：${target} 套</div>
       <div class="plan-row">
         <span class="plan-actual">${actual || '—'}</span>
-        <span class="${clrClass(ratio)}" style="font-size:13px">${actual ? pct(actual, target) : ''}</span>
+        <span class="${clrClass(ratio)}" style="font-size:15px;font-weight:500">${actual ? pctOfTarget + '%' : ''}</span>
       </div>
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${barW}%;background:${barClr(ratio)}"></div></div>
-      <div class="plan-day">${actual ? '預期進度：' + expTarget + '套' : '尚未填入'}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="plan-day">${actual ? '預期進度 ' + expTarget + ' 套' : '尚未填入'}</span>
+        <span class="${actual ? clrClass(ratio) : ''}" style="font-size:11px">${vsExpStr}</span>
+      </div>
     </div>`;
   }
   document.getElementById('plans-grid').innerHTML = mainPlans.map(cardHtml).join('');
@@ -448,22 +494,30 @@ function renderHourCards() {
   const ci = appState.currentDay;
   const dailyTarget = tRev * (config.dayPct[ci] || 0);
   const dayData = getDayData(ci);
+  const dayHourPct = (config.dayHourPct && config.dayHourPct[ci]) ? config.dayHourPct[ci] : config.hourPct;
   const slots = [
     { k: '凌晨', sub: '00:00–08:59' }, { k: '盤中', sub: '09:00–13:59' },
     { k: '盤後', sub: '14:00–18:59' }, { k: '晚上', sub: '19:00–23:59' }
   ];
   document.getElementById('hour-grid').innerHTML = slots.map(s => {
     const actual = dayData.hourRev?.[s.k] || 0;
-    const expected = Math.round(dailyTarget * (config.hourPct[s.k] || 0));
+    const slotPct = dayHourPct[s.k] || 0;
+    const expected = Math.round(dailyTarget * slotPct);
     const ratio = expected ? actual / expected : 0;
     const hasData = actual > 0;
+    const achievePct = expected ? Math.round(actual / expected * 100) : 0;
+    const barW = Math.min(100, achievePct);
     return `<div class="hour-card">
-      <div class="h-label">${s.k}</div>
-      <div class="h-time">${s.sub}</div>
-      <div class="h-pct ${hasData ? clrClass(ratio) : ''}">
-        <span class="status-dot" style="background:${hasData ? barClr(ratio) : 'var(--text-tertiary)'}"></span>
-        ${hasData ? pct(actual, expected) : '—'}
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="h-label">${s.k}</span>
+        <span style="font-size:11px;color:var(--text-tertiary)">佔 ${Math.round(slotPct * 100)}%</span>
       </div>
+      <div class="h-time">${s.sub}</div>
+      <div class="h-pct ${hasData ? clrClass(ratio) : ''}" style="font-size:16px">
+        <span class="status-dot" style="background:${hasData ? barClr(ratio) : 'var(--text-tertiary)'}"></span>
+        ${hasData ? achievePct + '%' : '—'}
+      </div>
+      <div class="progress-bar-wrap" style="margin:3px 0 4px"><div class="progress-bar" style="width:${barW}%;background:${hasData ? barClr(ratio) : 'var(--text-tertiary)'}"></div></div>
       <div class="h-vals">${hasData ? fmtMoney(actual) : '-'} / 估 ${fmtMoney(expected)}</div>
     </div>`;
   }).join('');
@@ -548,17 +602,39 @@ function renderForecast() {
     </div>`;
   }).join('');
 
-  const refSlots = [
+  const slotMeta = [
     { k: '凌晨', sub: '00:00–08:59', c: '#888780' }, { k: '盤中', sub: '09:00–13:59', c: '#1D9E75' },
     { k: '盤後', sub: '14:00–18:59', c: '#378ADD' }, { k: '晚上', sub: '19:00–23:59', c: '#D85A30' }
   ];
-  const dailyAvg = tRev / config.totalDays;
-  document.getElementById('hour-ref-grid').innerHTML = refSlots.map(s => `<div class="hour-card">
-    <div class="h-label">${s.k}</div>
-    <div style="font-size:18px;font-weight:500;margin:4px 0;color:${s.c}">${Math.round((config.hourPct[s.k] || 0) * 100)}%</div>
-    <div class="h-vals">${s.sub}</div>
-    <div class="h-vals" style="margin-top:3px">日均 ${fmtMoney(dailyAvg * (config.hourPct[s.k] || 0))}</div>
-  </div>`).join('');
+  const weekdaysF = ['週日','週一','週二','週三','週四','週五','週六'];
+  let htmlT = '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px">';
+  htmlT += '<thead><tr><th style="text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">日期</th><th style="text-align:right;padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">日目標</th>';
+  slotMeta.forEach(s => {
+    htmlT += `<th style="text-align:center;padding:7px 6px;border-bottom:1px solid var(--border);color:${s.c};font-weight:500">${s.k}<br><span style="font-size:10px;color:var(--text-tertiary);font-weight:400">${s.sub}</span></th>`;
+  });
+  htmlT += '</tr></thead><tbody>';
+
+  days.forEach((d, i) => {
+    const date = new Date(config.startDate || '2026-06-23');
+    date.setDate(date.getDate() + i);
+    const wd = weekdaysF[date.getDay()];
+    const dailyTarget = tRev * (config.dayPct[i] || 0);
+    const pcts = (config.dayHourPct && config.dayHourPct[i]) ? config.dayHourPct[i] : config.hourPct;
+    htmlT += `<tr style="background:${i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent'}">`;
+    htmlT += `<td style="padding:7px 8px;color:var(--text-primary);white-space:nowrap">${d}<span style="color:var(--text-tertiary);font-size:11px">（${wd}）</span></td>`;
+    htmlT += `<td style="padding:7px 8px;text-align:right;color:var(--text-secondary);white-space:nowrap">${fmtMoney(dailyTarget)}</td>`;
+    slotMeta.forEach(s => {
+      const slotPct = pcts[s.k] || 0;
+      const slotAmt = dailyTarget * slotPct;
+      htmlT += `<td style="padding:7px 6px;text-align:center;white-space:nowrap">
+        <div style="font-size:13px;font-weight:500;color:${s.c}">${Math.round(slotPct * 100)}%</div>
+        <div style="font-size:11px;color:var(--text-secondary)">${fmtMoney(slotAmt)}</div>
+      </td>`;
+    });
+    htmlT += '</tr>';
+  });
+  htmlT += '</tbody></table>';
+  document.getElementById('hour-daily-table').innerHTML = htmlT;
 
   document.getElementById('history-note').innerHTML =
     `<strong>LV1</strong> ${fmtMoney(config.targets.lv1.rev)}（${config.targets.lv1.qty}套）｜` +
@@ -692,6 +768,95 @@ function updateDayPctTotal() {
   el.style.color = Math.abs(total - 100) < 0.5 ? 'var(--text-success)' : 'var(--text-danger)';
 }
 
+function renderHourPctTable() {
+  const days = getDays();
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const slotColors = { '凌晨': '#888780', '盤中': '#1D9E75', '盤後': '#378ADD', '晚上': '#D85A30' };
+  const weekdays = ['週日','週一','週二','週三','週四','週五','週六'];
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">日期</th>';
+  slots.forEach(s => {
+    html += `<th style="text-align:center;padding:6px 8px;border-bottom:1px solid var(--border);color:${slotColors[s]};font-weight:500">${s}</th>`;
+  });
+  html += '<th style="text-align:center;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">合計</th></tr></thead><tbody>';
+
+  days.forEach((d, i) => {
+    const date = new Date(config.startDate || '2026-06-23');
+    date.setDate(date.getDate() + i);
+    const wd = weekdays[date.getDay()];
+    const pcts = (config.dayHourPct && config.dayHourPct[i]) ? config.dayHourPct[i] : config.hourPct;
+    const total = slots.reduce((s, k) => s + (pcts[k] || 0), 0);
+    const totalOk = Math.abs(total - 1) < 0.02;
+    html += `<tr style="background:${i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent'}">`;
+    html += `<td style="padding:5px 8px;color:var(--text-secondary)">${d}（${wd}）</td>`;
+    slots.forEach(s => {
+      const val = Math.round((pcts[s] || 0) * 100);
+      html += `<td style="text-align:center;padding:5px 4px"><input type="number" id="hp-${i}-${s}" value="${val}" min="0" max="100" style="width:54px;text-align:center;font-size:12px;padding:3px 4px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font)" oninput="updateHourPctRowTotal(${i})"><span style="font-size:11px;color:var(--text-tertiary)">%</span></td>`;
+    });
+    html += `<td id="hp-total-${i}" style="text-align:center;padding:5px 8px;font-size:12px;font-weight:500;color:${totalOk ? 'var(--text-success)' : 'var(--text-danger)'}">${Math.round(total * 100)}%</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">每列合計應為 100%（允許 ±2% 誤差），綠色表示正常。</div>';
+  document.getElementById('hourpct-table-wrap').innerHTML = html;
+}
+
+function updateHourPctRowTotal(i) {
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const total = slots.reduce((s, k) => {
+    return s + (parseFloat(document.getElementById(`hp-${i}-${k}`)?.value) || 0);
+  }, 0);
+  const el = document.getElementById(`hp-total-${i}`);
+  if (el) {
+    el.textContent = Math.round(total) + '%';
+    el.style.color = Math.abs(total - 100) < 2 ? 'var(--text-success)' : 'var(--text-danger)';
+  }
+}
+
+function parseHourPctPaste() {
+  const raw = document.getElementById('hourpct-paste').value.trim();
+  if (!raw) { document.getElementById('hourpct-parse-status').textContent = '⚠ 請先貼上資料'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const days = getDays();
+  let parsed = [];
+
+  for (const line of lines) {
+    // Split by tab or multiple spaces
+    const cells = line.split(/\t|  +/).map(c => c.trim()).filter(c => c.length > 0);
+    if (cells.length < 4) continue;
+
+    // Try to find 4 numeric values (skip leading date/label columns)
+    const nums = [];
+    for (const c of cells) {
+      const n = parseFloat(c.replace('%', '').trim());
+      if (!isNaN(n) && n >= 0 && n <= 100) nums.push(n);
+    }
+    if (nums.length >= 4) {
+      parsed.push({ '凌晨': nums[0] / 100, '盤中': nums[1] / 100, '盤後': nums[2] / 100, '晚上': nums[3] / 100 });
+    }
+  }
+
+  if (parsed.length === 0) {
+    document.getElementById('hourpct-parse-status').textContent = '✗ 無法解析，請確認格式（Tab 分隔，4個數值欄）';
+    document.getElementById('hourpct-parse-status').style.color = 'var(--text-danger)';
+    return;
+  }
+
+  // Fill into config.dayHourPct
+  if (!config.dayHourPct) config.dayHourPct = [];
+  while (config.dayHourPct.length < config.totalDays) config.dayHourPct.push({ ...config.hourPct });
+
+  parsed.forEach((p, i) => {
+    if (i < config.totalDays) config.dayHourPct[i] = p;
+  });
+
+  renderHourPctTable();
+  document.getElementById('hourpct-parse-status').textContent = `✓ 成功解析 ${parsed.length} 天的資料，請確認表格後儲存設定`;
+  document.getElementById('hourpct-parse-status').style.color = 'var(--text-success)';
+}
+
 function saveSettings() {
   config.name = document.getElementById('s-name').value || config.name;
   config.startDate = document.getElementById('s-start').value || config.startDate;
@@ -717,6 +882,23 @@ function saveSettings() {
     return;
   }
   config.dayPct = newPct;
+
+  // Save dayHourPct from table inputs
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const newDayHourPct = [];
+  for (let i = 0; i < config.totalDays; i++) {
+    const row = {};
+    let rowTotal = 0;
+    slots.forEach(s => {
+      const v = (parseFloat(document.getElementById(`hp-${i}-${s}`)?.value) || 0) / 100;
+      row[s] = v;
+      rowTotal += v;
+    });
+    if (rowTotal > 0) newDayHourPct.push(row);
+    else newDayHourPct.push(config.dayHourPct?.[i] || { ...config.hourPct });
+  }
+  config.dayHourPct = newDayHourPct;
+
   save();
   updateDashboard();
   renderDaySelect();
@@ -752,6 +934,7 @@ function switchTab(t) {
     document.getElementById('s-lv3-rev').value = config.targets.lv3.rev;
     renderPlanSettings();
     renderDayPctSettings();
+    renderHourPctTable();
   }
 }
 
