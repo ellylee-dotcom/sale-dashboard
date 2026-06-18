@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>銷售活動監控儀表板</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg-primary:#ffffff;--bg-secondary:#f5f5f2;--bg-tertiary:#eeede8;
+  --bg-info:#e6f1fb;--bg-success:#eaf3de;--bg-warning:#faeeda;--bg-danger:#fcebeb;
+  --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-tertiary:#888780;
+  --text-info:#185fa5;--text-success:#3b6d11;--text-warning:#854f0b;--text-danger:#a32d2d;
+  --border:rgba(0,0,0,0.12);--border-md:rgba(0,0,0,0.22);
+  --radius-md:8px;--radius-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg-primary:#1e1e1c;--bg-secondary:#2a2a27;--bg-tertiary:#333330;
+  --bg-info:#0c447c;--bg-success:#27500a;--bg-warning:#633806;--bg-danger:#791f1f;
+  --text-primary:#f0efea;--text-secondary:#b4b2a9;--text-tertiary:#888780;
+  --text-info:#85b7eb;--text-success:#97c459;--text-warning:#ef9f27;--text-danger:#f09595;
+  --border:rgba(255,255,255,0.12);--border-md:rgba(255,255,255,0.22);
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-primary);min-height:100vh}
+.container{max-width:860px;margin:0 auto;padding:24px 16px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.status-badge{font-size:13px;padding:5px 14px;border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-secondary);border:0.5px solid var(--border)}
+.tabs{display:flex;gap:2px;border-bottom:0.5px solid var(--border);margin-bottom:20px}
+.tab{font-size:13px;padding:7px 16px;cursor:pointer;color:var(--text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.tab.active{color:var(--text-primary);border-bottom:2px solid var(--text-primary);font-weight:500}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.metric-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.metric-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:12px 14px}
+.metric-card .label{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.metric-card .value{font-size:20px;font-weight:500;color:var(--text-primary)}
+.metric-card .sub{font-size:12px;margin-top:3px;color:var(--text-tertiary)}
+.section-title{font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.plans-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.other-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.plan-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px}
+.plan-card .plan-name{font-size:13px;color:var(--text-secondary);margin-bottom:2px}
+.plan-card .plan-target{font-size:11px;color:var(--text-tertiary);margin-bottom:8px}
+.plan-card .plan-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.plan-card .plan-actual{font-size:22px;font-weight:500;color:var(--text-primary)}
+.progress-bar-wrap{background:var(--bg-secondary);border-radius:4px;height:5px;overflow:hidden;margin-bottom:4px}
+.progress-bar{height:5px;border-radius:4px}
+.plan-day{font-size:11px;color:var(--text-tertiary)}
+.hour-section{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:16px}
+.hour-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.hour-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px}
+.hour-card .h-label{font-size:12px;color:var(--text-secondary);margin-bottom:2px}
+.hour-card .h-time{font-size:10px;color:var(--text-tertiary)}
+.hour-card .h-pct{font-size:14px;font-weight:500;margin:4px 0}
+.hour-card .h-vals{font-size:11px;color:var(--text-tertiary)}
+.ai-box{background:var(--bg-secondary);border-radius:var(--radius-lg);padding:14px;margin-top:4px}
+.ai-box .ai-title{font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px}
+.ai-item{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;font-size:13px;line-height:1.6}
+.tag{font-size:11px;padding:2px 7px;border-radius:var(--radius-md);white-space:nowrap;margin-top:2px}
+.tag-ok{background:var(--bg-success);color:var(--text-success)}
+.tag-warn{background:var(--bg-warning);color:var(--text-warning)}
+.tag-alert{background:var(--bg-danger);color:var(--text-danger)}
+.tag-info{background:var(--bg-info);color:var(--text-info)}
+.c-green{color:var(--text-success)}.c-yellow{color:var(--text-warning)}.c-red{color:var(--text-danger)}
+.input-card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.input-card h3{font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:4px}
+.input-card .sub{font-size:12px;color:var(--text-secondary);margin-bottom:12px}
+.day-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.day-btn{font-size:12px;padding:5px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;font-family:var(--font)}
+.day-btn.active{background:var(--bg-info);color:var(--text-info);border-color:var(--text-info)}
+.day-btn.filled{border-color:var(--text-success);color:var(--text-success)}
+.day-btn.active.filled{background:var(--bg-info);color:var(--text-info);border-color:var(--text-info)}
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ib-label{font-size:12px;color:var(--text-secondary);margin-bottom:8px;font-weight:500}
+.input-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.input-row label{font-size:13px;color:var(--text-primary);flex:1;min-width:0}
+.input-row input{width:100px;font-size:13px;padding:5px 8px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);text-align:right;font-family:var(--font)}
+.input-row input:focus{outline:2px solid var(--text-info);outline-offset:1px}
+.run-btn{margin-top:16px;padding:9px 20px;font-size:13px;cursor:pointer;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-primary);font-family:var(--font)}
+.run-btn:hover{background:var(--bg-tertiary)}
+.day-summary{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-bottom:16px}
+.day-summary-cell{background:var(--bg-secondary);border-radius:var(--radius-md);padding:8px 6px;text-align:center;cursor:pointer;border:0.5px solid transparent}
+.day-summary-cell.has-data{border-color:var(--text-success)}
+.day-summary-cell.active{border-color:var(--text-info);background:var(--bg-info)}
+.day-summary-cell .ds-date{font-size:11px;color:var(--text-secondary)}
+.day-summary-cell .ds-rev{font-size:12px;font-weight:500;color:var(--text-primary);margin-top:2px}
+.forecast-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px}
+.forecast-row .day-lbl{color:var(--text-secondary);min-width:48px}
+.forecast-row .bar-wrap{flex:1;background:var(--bg-secondary);border-radius:3px;height:8px;overflow:hidden}
+.forecast-row .fbar{height:8px;border-radius:3px}
+.forecast-row .pct-lbl{min-width:36px;text-align:right;color:var(--text-tertiary);font-size:12px}
+.forecast-row .amt-lbl{min-width:80px;text-align:right;color:var(--text-primary);font-size:12px}
+.scenario-row{display:flex;gap:16px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.scenario-row label{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text-primary)}
+.divider{height:0.5px;background:var(--border);margin:16px 0}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.history-note{font-size:12px;color:var(--text-tertiary);margin-top:12px;padding:10px 12px;background:var(--bg-secondary);border-radius:var(--radius-md);line-height:1.6}
+@media(max-width:600px){
+  .metric-row{grid-template-columns:repeat(2,1fr)}
+  .plans-grid{grid-template-columns:1fr}
+  .other-grid{grid-template-columns:repeat(2,1fr)}
+  .hour-grid{grid-template-columns:repeat(2,1fr)}
+  .input-grid{grid-template-columns:1fr}
+  .day-summary{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div>
+      <h1 style="font-size:18px;font-weight:500">銷售活動監控儀表板</h1>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:2px" id="event-range">活動期間：載入中</div>
+    </div>
+    <div class="status-badge" id="overall-status">待輸入數據</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('track')">追蹤監控</button>
+    <button class="tab" onclick="switchTab('forecast')">逐日預估</button>
+    <button class="tab" onclick="switchTab('input')">填入數據</button>
+    <button class="tab" onclick="switchTab('settings')">活動設定</button>
+  </div>
+
+  <!-- 追蹤監控 -->
+  <div id="tab-track" class="tab-panel active">
+    <div class="metric-row">
+      <div class="metric-card"><div class="label">累計營收</div><div class="value" id="m-rev">—</div><div class="sub" id="m-rev-sub">尚未填入</div></div>
+      <div class="metric-card"><div class="label">累計套數</div><div class="value" id="m-qty">—</div><div class="sub" id="m-qty-sub">尚未填入</div></div>
+      <div class="metric-card"><div class="label">已填天數</div><div class="value" id="m-day">0天</div><div class="sub" id="m-day-sub">共N天</div></div>
+      <div class="metric-card"><div class="label">預估終值</div><div class="value" id="m-proj">—</div><div class="sub" id="m-proj-sub">以日均推算</div></div>
+    </div>
+    <div class="section-title">重點方案</div>
+    <div class="plans-grid" id="plans-grid"></div>
+    <div class="section-title">其他方案</div>
+    <div class="other-grid" id="other-grid"></div>
+    <div class="hour-section">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:500">日內時段分布</div>
+        <div style="font-size:12px;color:var(--text-secondary)">查看日期：<span id="today-date">—</span>
+          <button onclick="prevDay()" style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;font-family:var(--font)">‹</button>
+          <button onclick="nextDay()" style="margin-left:4px;font-size:11px;padding:2px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer;font-family:var(--font)">›</button>
+        </div>
+      </div>
+      <div class="hour-grid" id="hour-grid"></div>
+    </div>
+    <div class="ai-box">
+      <div class="ai-title"><i class="ti ti-sparkles" aria-hidden="true" style="font-size:14px;margin-right:5px"></i>AI 每日解讀</div>
+      <div id="ai-content" style="color:var(--text-tertiary);font-size:13px">請先在「填入數據」頁籤輸入今日數字。</div>
+    </div>
+  </div>
+
+  <!-- 逐日預估 -->
+  <div id="tab-forecast" class="tab-panel">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">依歷史活動分布比例推算各日目標</div>
+    <div class="scenario-row">
+      <span style="font-size:13px;color:var(--text-secondary)">情境：</span>
+      <label><input type="radio" name="scenario" value="lv1" checked onchange="renderForecast()"> LV1 基準</label>
+      <label><input type="radio" name="scenario" value="lv2" onchange="renderForecast()"> LV2 樂觀</label>
+      <label><input type="radio" name="scenario" value="lv3" onchange="renderForecast()"> LV3 極樂觀</label>
+    </div>
+    <div id="forecast-bars"></div>
+    <div class="divider"></div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px">時段分布參考</div>
+    <div class="hour-grid" id="hour-ref-grid"></div>
+    <div class="history-note" id="history-note"></div>
+  </div>
+
+  <!-- 填入數據 -->
+  <div id="tab-input" class="tab-panel">
+    <div class="input-card">
+      <h3>選擇日期</h3>
+      <div class="sub" id="input-date-range">活動期間載入中</div>
+      <div class="day-select" id="day-select"></div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">
+        <i class="ti ti-info-circle" aria-hidden="true" style="font-size:13px;margin-right:3px"></i>
+        填入<strong>當天新增</strong>數字，各天獨立儲存。綠色日期按鈕表示已填入數據。
+      </div>
+      <div class="input-grid">
+        <div>
+          <div class="ib-label">各方案當日新增套數</div>
+          <div id="qty-inputs"></div>
+        </div>
+        <div>
+          <div class="ib-label">今日各時段營收（$）</div>
+          <div class="input-row"><label>凌晨 00:00–08:59</label><input type="number" id="i-h1" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>盤中 09:00–13:59</label><input type="number" id="i-h2" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>盤後 14:00–18:59</label><input type="number" id="i-h3" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div class="input-row"><label>晚上 19:00–23:59</label><input type="number" id="i-h4" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          <div style="margin-top:12px">
+            <div class="ib-label">加價購營收（$）</div>
+            <div class="input-row"><label>加價購總額</label><input type="number" id="i-addon-rev" placeholder="0" min="0" oninput="calcTotalRev()"></div>
+          </div>
+          <div style="margin-top:12px;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px 12px">
+            <div class="ib-label">今日實際總營收（自動加總）</div>
+            <div class="input-row" style="margin-bottom:0">
+              <label style="color:var(--text-secondary);font-size:12px">時段合計 + 加價購</label>
+              <span id="i-today-rev-display" style="font-size:16px;font-weight:500;color:var(--text-primary);min-width:100px;text-align:right">$0</span>
+            </div>
+            <input type="hidden" id="i-today-rev" value="0">
+          </div>
+        </div>
+      </div>
+      <button class="run-btn" onclick="applyData()"><i class="ti ti-check" aria-hidden="true"></i> 儲存今日數據並更新儀表板</button>
+    </div>
+
+    <div class="input-card">
+      <h3>各日數據總覽</h3>
+      <div class="sub">點擊日期可跳至該天編輯</div>
+      <div class="day-summary" id="day-summary"></div>
+    </div>
+  </div>
+
+  <!-- 活動設定 -->
+  <div id="tab-settings" class="tab-panel">
+    <div class="input-card">
+      <h3>活動基本設定</h3>
+      <div class="sub">每次新活動只需更新這裡的數字</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:4px">
+        <div>
+          <div class="ib-label">活動名稱</div>
+          <div class="input-row"><input type="text" id="s-name" style="width:100%;text-align:left" placeholder="例：6月年中慶"></div>
+          <div class="ib-label" style="margin-top:10px">活動開始日期</div>
+          <div class="input-row"><input type="date" id="s-start" style="width:100%;text-align:left"></div>
+          <div class="ib-label" style="margin-top:10px">活動天數</div>
+          <div class="input-row"><input type="number" id="s-days" value="8" min="1" max="30" style="width:80px"></div>
+        </div>
+        <div>
+          <div class="ib-label">LV1 目標套數 / 營收</div>
+          <div class="input-row"><input type="number" id="s-lv1-qty" value="806" style="width:90px"><input type="number" id="s-lv1-rev" value="4560000" style="width:110px;margin-left:6px"></div>
+          <div class="ib-label" style="margin-top:10px">LV2 目標套數 / 營收</div>
+          <div class="input-row"><input type="number" id="s-lv2-qty" value="1015" style="width:90px"><input type="number" id="s-lv2-rev" value="5600000" style="width:110px;margin-left:6px"></div>
+          <div class="ib-label" style="margin-top:10px">LV3 目標套數 / 營收</div>
+          <div class="input-row"><input type="number" id="s-lv3-qty" value="1345" style="width:90px"><input type="number" id="s-lv3-rev" value="7200000" style="width:110px;margin-left:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="input-card">
+      <h3>各方案目標套數設定</h3>
+      <div class="sub">LV1 / LV2 / LV3</div>
+      <div id="plan-settings"></div>
+    </div>
+    <div class="input-card">
+      <h3>逐日營收分布設定</h3>
+      <div class="sub">各天佔比（%），合計需為 100%，儲存後「逐日預估」自動更新</div>
+      <div id="daypct-settings" style="margin-top:8px"></div>
+      <div style="margin-top:10px;font-size:13px;color:var(--text-secondary)">目前合計：<span id="daypct-total" style="font-weight:500">—</span></div>
+    </div>
+    <div class="input-card">
+      <h3>逐日時段分布設定</h3>
+      <div class="sub">從 Excel / Google Sheets 複製整個表格後，直接貼上到下方文字框，系統自動解析。<br>格式：第一欄為日期、後四欄依序為凌晨、盤中、盤後、晚上的佔比（%數字，不含%符號）</div>
+      <div style="margin-top:10px;margin-bottom:8px">
+        <div class="ib-label">貼上資料（支援 Excel / Google Sheets 直接複製貼上）</div>
+        <textarea id="hourpct-paste" rows="10" style="width:100%;font-size:12px;font-family:monospace;padding:8px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);resize:vertical;line-height:1.6" placeholder="直接從試算表複製貼上，例如：&#10;06/23 星期二	10%	25%	31%	34%&#10;06/24 星期三	30%	18%	17%	35%&#10;（支援有無%符號、有無日期欄、任意空白/Tab分隔）"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button class="run-btn" style="margin-top:0" onclick="parseHourPctPaste()"><i class="ti ti-table-import" aria-hidden="true"></i> 解析貼上的資料</button>
+          <span id="hourpct-parse-status" style="font-size:12px;color:var(--text-secondary)"></span>
+        </div>
+      </div>
+      <div id="hourpct-table-wrap" style="margin-top:14px;overflow-x:auto"></div>
+    </div>
+    <button class="run-btn" onclick="saveSettings()"><i class="ti ti-settings" aria-hidden="true"></i> 儲存設定</button>
+    <button class="run-btn" style="margin-left:8px;color:var(--text-danger)" onclick="resetAll()"><i class="ti ti-refresh" aria-hidden="true"></i> 重置所有數據</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_CONFIG = {
+  name: '6月年中慶',
+  startDate: '2026-06-23',
+  totalDays: 8,
+  targets: {
+    lv1: { rev: 4560000, qty: 806 },
+    lv2: { rev: 5600000, qty: 1015 },
+    lv3: { rev: 7200000, qty: 1345 }
+  },
+  plans: [
+    { id: 'chipk', name: '籌K APP（含流失）', lv1: 530, lv2: 650, lv3: 880, primary: true },
+    { id: 'prime', name: 'PRIME', lv1: 75, lv2: 110, lv3: 150, primary: true },
+    { id: 'pc', name: '籌K PC', lv1: 63, lv2: 80, lv3: 100, primary: false },
+    { id: 'bundle', name: '全APP組合包', lv1: 20, lv2: 30, lv3: 40, primary: false },
+    { id: '3k', name: '股市三K', lv1: 18, lv2: 25, lv3: 30, primary: false },
+    { id: 'addon', name: '加價購', lv1: 100, lv2: 120, lv3: 145, primary: false },
+  ],
+  dayPct: [0.12, 0.11, 0.12, 0.09, 0.04, 0.05, 0.18, 0.29],
+  hourPct: { '凌晨': 0.14, '盤中': 0.27, '盤後': 0.24, '晚上': 0.35 },
+  dayHourPct: [
+    { '凌晨': 0.10, '盤中': 0.25, '盤後': 0.31, '晚上': 0.34 },
+    { '凌晨': 0.30, '盤中': 0.18, '盤後': 0.17, '晚上': 0.35 },
+    { '凌晨': 0.24, '盤中': 0.27, '盤後': 0.15, '晚上': 0.34 },
+    { '凌晨': 0.13, '盤中': 0.37, '盤後': 0.30, '晚上': 0.21 },
+    { '凌晨': 0.20, '盤中': 0.19, '盤後': 0.22, '晚上': 0.39 },
+    { '凌晨': 0.32, '盤中': 0.05, '盤後': 0.05, '晚上': 0.58 },
+    { '凌晨': 0.16, '盤中': 0.19, '盤後': 0.19, '晚上': 0.46 },
+    { '凌晨': 0.11, '盤中': 0.13, '盤後': 0.26, '晚上': 0.50 }
+  ]
+};
+
+let config = JSON.parse(localStorage.getItem('dashConfig') || 'null') || JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+
+// appState: { currentDay, scenario, days: [ {qty:{}, hourRev:{}, totalRev} x N ] }
+let appState = JSON.parse(localStorage.getItem('dashState2') || 'null') || {
+  currentDay: 0,
+  scenario: 'lv1',
+  days: []
+};
+
+function save() {
+  localStorage.setItem('dashConfig', JSON.stringify(config));
+  localStorage.setItem('dashState2', JSON.stringify(appState));
+}
+
+function getDayLabel(i) {
+  if (!config.startDate) return 'Day' + (i + 1);
+  const d = new Date(config.startDate);
+  d.setDate(d.getDate() + i);
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+
+function getDays() {
+  return Array.from({ length: config.totalDays }, (_, i) => getDayLabel(i));
+}
+
+function getDayData(i) {
+  return appState.days[i] || { qty: {}, hourRev: {}, totalRev: 0 };
+}
+
+function hasDayData(i) {
+  const d = getDayData(i);
+  return d.totalRev > 0;
+}
+
+// 累計到第 upToDay 天（含）
+function accumQty(upToDay) {
+  const result = {};
+  config.plans.forEach(p => { result[p.id] = 0; });
+  for (let i = 0; i <= upToDay; i++) {
+    const d = getDayData(i);
+    config.plans.forEach(p => {
+      result[p.id] += (d.qty[p.id] || 0);
+    });
+  }
+  return result;
+}
+
+function accumRev(upToDay) {
+  let total = 0;
+  for (let i = 0; i <= upToDay; i++) {
+    total += getDayData(i).totalRev || 0;
+  }
+  return total;
+}
+
+function daysWithData() {
+  let count = 0;
+  for (let i = 0; i < config.totalDays; i++) {
+    if (hasDayData(i)) count++;
+  }
+  return count;
+}
+
+function lastFilledDay() {
+  for (let i = config.totalDays - 1; i >= 0; i--) {
+    if (hasDayData(i)) return i;
+  }
+  return -1;
+}
+
+function elapsedExpectedPct(upToDay) {
+  let s = 0;
+  for (let i = 0; i <= upToDay; i++) s += (config.dayPct[i] || 0);
+  return s;
+}
+
+function totalQtyAccum() {
+  const lfd = lastFilledDay();
+  if (lfd < 0) return 0;
+  const q = accumQty(lfd);
+  return config.plans.reduce((s, p) => s + (q[p.id] || 0), 0);
+}
+
+function fmtMoney(n) { return '$' + Math.round(n).toLocaleString('zh-TW'); }
+function pct(a, b) { return b ? Math.round(a / b * 100) + '%' : '—'; }
+function clrClass(r) { return r >= 1 ? 'c-green' : r >= 0.8 ? 'c-yellow' : 'c-red'; }
+function barClr(r) { return r >= 1 ? '#639922' : r >= 0.8 ? '#BA7517' : '#E24B4A'; }
+
+function updateDashboard() {
+  const sc = appState.scenario || 'lv1';
+  const tRev = config.targets[sc].rev;
+  const tQty = config.targets[sc].qty;
+  const lfd = lastFilledDay();
+  const dwd = daysWithData();
+  const totalRev = lfd >= 0 ? accumRev(lfd) : 0;
+  const dayAvg = dwd > 0 ? totalRev / dwd : 0;
+  const projRev = dayAvg * config.totalDays;
+  const tq = totalQtyAccum();
+
+  document.getElementById('event-range').textContent =
+    (config.name || '活動') + '｜' + getDayLabel(0) + ' — ' + getDayLabel(config.totalDays - 1) + '｜' + config.totalDays + '天';
+  document.getElementById('m-rev').textContent = totalRev ? fmtMoney(totalRev) : '—';
+  document.getElementById('m-qty').textContent = tq || '—';
+  document.getElementById('m-day').textContent = dwd + '天';
+  document.getElementById('m-day-sub').textContent = '已填 ' + dwd + '/' + config.totalDays + ' 天';
+  document.getElementById('m-proj').textContent = totalRev ? fmtMoney(projRev) : '—';
+  document.getElementById('today-date').textContent = getDayLabel(appState.currentDay);
+
+  if (totalRev && lfd >= 0) {
+    const expPct = elapsedExpectedPct(lfd);
+    const actPct = totalRev / tRev;
+    const diff = Math.round((actPct - expPct) * 100);
+    const revSub = document.getElementById('m-rev-sub');
+    revSub.textContent = (diff >= 0 ? '+' : '') + diff + '% vs 預期進度';
+    revSub.className = 'sub ' + (diff >= 0 ? 'c-green' : 'c-red');
+
+    const qr = tQty ? tq / tQty : 0;
+    const qtySub = document.getElementById('m-qty-sub');
+    qtySub.textContent = pct(tq, tQty) + ' of ' + sc.toUpperCase() + ' 目標';
+    qtySub.className = 'sub ' + clrClass(qr);
+
+    const pr = projRev / tRev;
+    const projSub = document.getElementById('m-proj-sub');
+    projSub.textContent = Math.round(pr * 100) + '% of LV1目標';
+    projSub.className = 'sub ' + clrClass(pr);
+
+    const overall = expPct ? actPct / expPct : 0;
+    const os = document.getElementById('overall-status');
+    if (overall >= 0.95) { os.textContent = '✓ 在軌道上'; os.style.background = 'var(--bg-success)'; os.style.color = 'var(--text-success)'; }
+    else if (overall >= 0.8) { os.textContent = '⚠ 略低於預期'; os.style.background = 'var(--bg-warning)'; os.style.color = 'var(--text-warning)'; }
+    else { os.textContent = '✗ 落後預期'; os.style.background = 'var(--bg-danger)'; os.style.color = 'var(--text-danger)'; }
+  }
+
+  renderPlans();
+  renderHourCards();
+  renderAI(projRev, tRev, tq, tQty, lfd);
+  renderDaySummary();
+}
+
+function renderPlans() {
+  const sc = appState.scenario || 'lv1';
+  const lfd = lastFilledDay();
+  const qAccum = lfd >= 0 ? accumQty(lfd) : {};
+  const expPct = lfd >= 0 ? elapsedExpectedPct(lfd) : 0;
+  const mainPlans = config.plans.filter(p => p.primary);
+  const otherPlans = config.plans.filter(p => !p.primary);
+
+  function cardHtml(p) {
+    const actual = qAccum[p.id] || 0;
+    const target = p[sc];
+    const expTarget = Math.round(target * expPct);
+    const ratio = expTarget ? actual / expTarget : 0;
+    const barW = Math.min(100, target ? Math.round(actual / target * 100) : 0);
+    return `<div class="plan-card">
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-target">${sc.toUpperCase()} 目標：${target} 套</div>
+      <div class="plan-row">
+        <span class="plan-actual">${actual || '—'}</span>
+        <span class="${clrClass(ratio)}" style="font-size:13px">${actual ? pct(actual, target) : ''}</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${barW}%;background:${barClr(ratio)}"></div></div>
+      <div class="plan-day">${actual ? '預期進度：' + expTarget + '套' : '尚未填入'}</div>
+    </div>`;
+  }
+  document.getElementById('plans-grid').innerHTML = mainPlans.map(cardHtml).join('');
+  document.getElementById('other-grid').innerHTML = otherPlans.map(cardHtml).join('');
+}
+
+function renderHourCards() {
+  const sc = appState.scenario || 'lv1';
+  const tRev = config.targets[sc].rev;
+  const ci = appState.currentDay;
+  const dailyTarget = tRev * (config.dayPct[ci] || 0);
+  const dayData = getDayData(ci);
+  const dayHourPct = (config.dayHourPct && config.dayHourPct[ci]) ? config.dayHourPct[ci] : config.hourPct;
+  const slots = [
+    { k: '凌晨', sub: '00:00–08:59' }, { k: '盤中', sub: '09:00–13:59' },
+    { k: '盤後', sub: '14:00–18:59' }, { k: '晚上', sub: '19:00–23:59' }
+  ];
+  document.getElementById('hour-grid').innerHTML = slots.map(s => {
+    const actual = dayData.hourRev?.[s.k] || 0;
+    const expected = Math.round(dailyTarget * (dayHourPct[s.k] || 0));
+    const ratio = expected ? actual / expected : 0;
+    const hasData = actual > 0;
+    return `<div class="hour-card">
+      <div class="h-label">${s.k}</div>
+      <div class="h-time">${s.sub}</div>
+      <div class="h-pct ${hasData ? clrClass(ratio) : ''}">
+        <span class="status-dot" style="background:${hasData ? barClr(ratio) : 'var(--text-tertiary)'}"></span>
+        ${hasData ? pct(actual, expected) : '—'}
+      </div>
+      <div class="h-vals">${hasData ? fmtMoney(actual) : '-'} / 估 ${fmtMoney(expected)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDaySummary() {
+  const days = getDays();
+  document.getElementById('day-summary').innerHTML = days.map((d, i) => {
+    const data = getDayData(i);
+    const hasData = data.totalRev > 0;
+    const isActive = appState.currentDay === i;
+    return `<div class="day-summary-cell ${hasData ? 'has-data' : ''} ${isActive ? 'active' : ''}" onclick="jumpToDay(${i})">
+      <div class="ds-date">${d}</div>
+      <div class="ds-rev">${hasData ? fmtMoney(data.totalRev) : '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAI(projRev, tRev, tq, tQty, lfd) {
+  if (lfd < 0) return;
+  const sc = appState.scenario || 'lv1';
+  const expPct = elapsedExpectedPct(lfd);
+  const totalRev = accumRev(lfd);
+  const actPct = totalRev / tRev;
+  const overall = expPct ? actPct / expPct : 0;
+  const items = [];
+
+  if (overall >= 0.95) items.push({ tag: 'tag-ok', txt: `整體營收進度符合預期（${Math.round(actPct * 100)}% vs 預期 ${Math.round(expPct * 100)}%），維持當前節奏。` });
+  else if (overall >= 0.8) items.push({ tag: 'tag-warn', txt: `整體略低於預期 ${Math.round((expPct - actPct) * 100)}pp，建議加強渠道推播頻次補量。` });
+  else items.push({ tag: 'tag-alert', txt: `整體落後預期 ${Math.round((expPct - actPct) * 100)}pp，需立即檢視偏低方案，評估是否啟動備案。` });
+
+  const qAccum = accumQty(lfd);
+  const chipkPlan = config.plans.find(p => p.id === 'chipk');
+  if (chipkPlan) {
+    const actual = qAccum['chipk'] || 0;
+    const exp = Math.round(chipkPlan[sc] * expPct);
+    if (actual && exp) {
+      const r = actual / exp;
+      if (r < 0.8) items.push({ tag: 'tag-alert', txt: `籌K APP 累計 ${actual} 套，低於預期 ${exp} 套，建議立即強化免費用戶彈窗頻次。` });
+      else if (r >= 1) items.push({ tag: 'tag-ok', txt: `籌K APP 表現優於預期（${actual}/${exp} 套）。` });
+      else items.push({ tag: 'tag-info', txt: `籌K APP 累計 ${actual} 套，略低於預期 ${exp} 套，持續關注。` });
+    }
+  }
+
+  const otherPlans = config.plans.filter(p => !p.primary);
+  const otherTotal = otherPlans.reduce((s, p) => s + (qAccum[p.id] || 0), 0);
+  const otherTarget = Math.round(otherPlans.reduce((s, p) => s + p[sc], 0) * expPct);
+  if (otherTotal && otherTarget) {
+    const r = otherTotal / otherTarget;
+    if (r < 0.7) items.push({ tag: 'tag-warn', txt: `次要方案合計 ${otherTotal} 套，低於預期 ${otherTarget} 套，可嘗試強化 CM熱榜導流。` });
+    else items.push({ tag: 'tag-info', txt: `次要方案合計 ${otherTotal} 套，整體佔比健康。` });
+  }
+
+  const pr = projRev / tRev;
+  if (pr >= 1.1) items.push({ tag: 'tag-ok', txt: `以當前日均推算終值 ${fmtMoney(projRev)}，有機會挑戰 LV2。` });
+  else if (pr >= 0.9) items.push({ tag: 'tag-info', txt: `預估終值 ${fmtMoney(projRev)}，接近 LV1，後半段為關鍵衝刺時機。` });
+  else items.push({ tag: 'tag-warn', txt: `預估終值 ${fmtMoney(projRev)}（${Math.round(pr * 100)}% of LV1），後半段需積極推播加碼。` });
+
+  const tagLabel = { 'tag-ok': '✓ 正常', 'tag-warn': '⚠ 注意', 'tag-alert': '✗ 警示', 'tag-info': 'ℹ 資訊' };
+  document.getElementById('ai-content').innerHTML = items.map(it =>
+    `<div class="ai-item"><span class="tag ${it.tag}">${tagLabel[it.tag]}</span><span>${it.txt}</span></div>`
+  ).join('');
+}
+
+function renderForecast() {
+  const sc = document.querySelector('input[name="scenario"]:checked')?.value || 'lv1';
+  const tRev = config.targets[sc].rev;
+  const days = getDays();
+  const maxPct = Math.max(...config.dayPct.slice(0, config.totalDays));
+  const colors = ['#639922','#3B6D11','#639922','#BA7517','#BA7517','#BA7517','#D85A30','#E24B4A'];
+  document.getElementById('forecast-bars').innerHTML = days.map((d, i) => {
+    const p = config.dayPct[i] || 0;
+    const amt = Math.round(tRev * p);
+    const w = Math.round(p / maxPct * 100);
+    const actual = getDayData(i).totalRev;
+    const actualStr = actual > 0 ? ` <span style="color:var(--text-success);font-size:11px">實際 ${fmtMoney(actual)}</span>` : '';
+    return `<div class="forecast-row">
+      <span class="day-lbl">${d}</span>
+      <div class="bar-wrap"><div class="fbar" style="width:${w}%;background:${colors[i] || '#888780'}"></div></div>
+      <span class="pct-lbl">${Math.round(p * 100)}%</span>
+      <span class="amt-lbl">${fmtMoney(amt)}${actualStr}</span>
+    </div>`;
+  }).join('');
+
+  const refSlots = [
+    { k: '凌晨', sub: '00:00–08:59', c: '#888780' }, { k: '盤中', sub: '09:00–13:59', c: '#1D9E75' },
+    { k: '盤後', sub: '14:00–18:59', c: '#378ADD' }, { k: '晚上', sub: '19:00–23:59', c: '#D85A30' }
+  ];
+  const dailyAvg = tRev / config.totalDays;
+  document.getElementById('hour-ref-grid').innerHTML = refSlots.map(s => `<div class="hour-card">
+    <div class="h-label">${s.k}</div>
+    <div style="font-size:18px;font-weight:500;margin:4px 0;color:${s.c}">${Math.round((config.hourPct[s.k] || 0) * 100)}%</div>
+    <div class="h-vals">${s.sub}</div>
+    <div class="h-vals" style="margin-top:3px">日均 ${fmtMoney(dailyAvg * (config.hourPct[s.k] || 0))}</div>
+  </div>`).join('');
+
+  document.getElementById('history-note').innerHTML =
+    `<strong>LV1</strong> ${fmtMoney(config.targets.lv1.rev)}（${config.targets.lv1.qty}套）｜` +
+    `<strong>LV2</strong> ${fmtMoney(config.targets.lv2.rev)}（${config.targets.lv2.qty}套）｜` +
+    `<strong>LV3</strong> ${fmtMoney(config.targets.lv3.rev)}（${config.targets.lv3.qty}套）`;
+}
+
+function renderDaySelect() {
+  const days = getDays();
+  document.getElementById('day-select').innerHTML = days.map((d, i) => {
+    const has = hasDayData(i);
+    const active = appState.currentDay === i;
+    return `<button class="day-btn ${active ? 'active' : ''} ${has && !active ? 'filled' : ''}" onclick="setDay(${i})">${d}</button>`;
+  }).join('');
+  document.getElementById('input-date-range').textContent = '活動期間：' + days[0] + ' — ' + days[days.length - 1];
+}
+
+function loadDayIntoForm(i) {
+  const d = getDayData(i);
+  config.plans.forEach(p => {
+    const el = document.getElementById('i-' + p.id);
+    if (el) el.value = d.qty?.[p.id] || '';
+  });
+  document.getElementById('i-h1').value = d.hourRev?.['凌晨'] || '';
+  document.getElementById('i-h2').value = d.hourRev?.['盤中'] || '';
+  document.getElementById('i-h3').value = d.hourRev?.['盤後'] || '';
+  document.getElementById('i-h4').value = d.hourRev?.['晚上'] || '';
+  document.getElementById('i-addon-rev').value = d.addonRev || '';
+  calcTotalRev();
+}
+
+function setDay(i) {
+  appState.currentDay = i;
+  renderDaySelect();
+  loadDayIntoForm(i);
+  save();
+}
+
+function jumpToDay(i) {
+  appState.currentDay = i;
+  renderDaySelect();
+  loadDayIntoForm(i);
+  renderHourCards();
+  renderDaySummary();
+  document.getElementById('today-date').textContent = getDayLabel(i);
+  save();
+}
+
+function prevDay() {
+  if (appState.currentDay > 0) jumpToDay(appState.currentDay - 1);
+}
+function nextDay() {
+  if (appState.currentDay < config.totalDays - 1) jumpToDay(appState.currentDay + 1);
+}
+
+function renderQtyInputs() {
+  document.getElementById('qty-inputs').innerHTML = config.plans.map(p =>
+    `<div class="input-row"><label>${p.name}</label><input type="number" id="i-${p.id}" placeholder="0" min="0"></div>`
+  ).join('');
+}
+
+function calcTotalRev() {
+  const h1 = parseFloat(document.getElementById('i-h1')?.value) || 0;
+  const h2 = parseFloat(document.getElementById('i-h2')?.value) || 0;
+  const h3 = parseFloat(document.getElementById('i-h3')?.value) || 0;
+  const h4 = parseFloat(document.getElementById('i-h4')?.value) || 0;
+  const addon = parseFloat(document.getElementById('i-addon-rev')?.value) || 0;
+  const total = h1 + h2 + h3 + h4 + addon;
+  const display = document.getElementById('i-today-rev-display');
+  const hidden = document.getElementById('i-today-rev');
+  if (display) display.textContent = '$' + Math.round(total).toLocaleString('zh-TW');
+  if (hidden) hidden.value = total;
+}
+
+function applyData() {
+  const i = appState.currentDay;
+  if (!appState.days[i]) appState.days[i] = { qty: {}, hourRev: {}, totalRev: 0 };
+  config.plans.forEach(p => {
+    const v = parseFloat(document.getElementById('i-' + p.id)?.value) || 0;
+    appState.days[i].qty[p.id] = v;
+  });
+  appState.days[i].hourRev = {
+    '凌晨': parseFloat(document.getElementById('i-h1').value) || 0,
+    '盤中': parseFloat(document.getElementById('i-h2').value) || 0,
+    '盤後': parseFloat(document.getElementById('i-h3').value) || 0,
+    '晚上': parseFloat(document.getElementById('i-h4').value) || 0,
+  };
+  appState.days[i].totalRev = parseFloat(document.getElementById('i-today-rev')?.value) || 0;
+  appState.days[i].addonRev = parseFloat(document.getElementById('i-addon-rev')?.value) || 0;
+  save();
+  updateDashboard();
+  renderDaySelect();
+  switchTab('track');
+}
+
+function renderPlanSettings() {
+  document.getElementById('plan-settings').innerHTML = config.plans.map(p =>
+    `<div class="input-row">
+      <label style="min-width:130px">${p.name}</label>
+      <input type="number" id="ps-${p.id}-lv1" value="${p.lv1}" style="width:70px">
+      <input type="number" id="ps-${p.id}-lv2" value="${p.lv2}" style="width:70px;margin-left:6px">
+      <input type="number" id="ps-${p.id}-lv3" value="${p.lv3}" style="width:70px;margin-left:6px">
+    </div>`
+  ).join('');
+}
+
+function renderDayPctSettings() {
+  const days = getDays();
+  const weekdays = ['週日','週一','週二','週三','週四','週五','週六'];
+  document.getElementById('daypct-settings').innerHTML = days.map((d, i) => {
+    const date = new Date(config.startDate || '2026-06-23');
+    date.setDate(date.getDate() + i);
+    const wd = weekdays[date.getDay()];
+    return `<div class="input-row">
+      <label style="min-width:100px">${d}（${wd}）</label>
+      <input type="number" id="dp-${i}" value="${Math.round((config.dayPct[i] || 0) * 100)}" min="0" max="100" step="1" style="width:70px" oninput="updateDayPctTotal()">
+      <span style="font-size:13px;color:var(--text-secondary);margin-left:4px">%</span>
+    </div>`;
+  }).join('');
+  updateDayPctTotal();
+}
+
+function updateDayPctTotal() {
+  let total = 0;
+  for (let i = 0; i < config.totalDays; i++) {
+    total += parseFloat(document.getElementById('dp-' + i)?.value) || 0;
+  }
+  const el = document.getElementById('daypct-total');
+  if (!el) return;
+  el.textContent = total.toFixed(0) + '%';
+  el.style.color = Math.abs(total - 100) < 0.5 ? 'var(--text-success)' : 'var(--text-danger)';
+}
+
+function renderHourPctTable() {
+  const days = getDays();
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const slotColors = { '凌晨': '#888780', '盤中': '#1D9E75', '盤後': '#378ADD', '晚上': '#D85A30' };
+  const weekdays = ['週日','週一','週二','週三','週四','週五','週六'];
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">日期</th>';
+  slots.forEach(s => {
+    html += `<th style="text-align:center;padding:6px 8px;border-bottom:1px solid var(--border);color:${slotColors[s]};font-weight:500">${s}</th>`;
+  });
+  html += '<th style="text-align:center;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-secondary);font-weight:500">合計</th></tr></thead><tbody>';
+
+  days.forEach((d, i) => {
+    const date = new Date(config.startDate || '2026-06-23');
+    date.setDate(date.getDate() + i);
+    const wd = weekdays[date.getDay()];
+    const pcts = (config.dayHourPct && config.dayHourPct[i]) ? config.dayHourPct[i] : config.hourPct;
+    const total = slots.reduce((s, k) => s + (pcts[k] || 0), 0);
+    const totalOk = Math.abs(total - 1) < 0.02;
+    html += `<tr style="background:${i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent'}">`;
+    html += `<td style="padding:5px 8px;color:var(--text-secondary)">${d}（${wd}）</td>`;
+    slots.forEach(s => {
+      const val = Math.round((pcts[s] || 0) * 100);
+      html += `<td style="text-align:center;padding:5px 4px"><input type="number" id="hp-${i}-${s}" value="${val}" min="0" max="100" style="width:54px;text-align:center;font-size:12px;padding:3px 4px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font)" oninput="updateHourPctRowTotal(${i})"><span style="font-size:11px;color:var(--text-tertiary)">%</span></td>`;
+    });
+    html += `<td id="hp-total-${i}" style="text-align:center;padding:5px 8px;font-size:12px;font-weight:500;color:${totalOk ? 'var(--text-success)' : 'var(--text-danger)'}">${Math.round(total * 100)}%</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="font-size:11px;color:var(--text-tertiary);margin-top:8px">每列合計應為 100%（允許 ±2% 誤差），綠色表示正常。</div>';
+  document.getElementById('hourpct-table-wrap').innerHTML = html;
+}
+
+function updateHourPctRowTotal(i) {
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const total = slots.reduce((s, k) => {
+    return s + (parseFloat(document.getElementById(`hp-${i}-${k}`)?.value) || 0);
+  }, 0);
+  const el = document.getElementById(`hp-total-${i}`);
+  if (el) {
+    el.textContent = Math.round(total) + '%';
+    el.style.color = Math.abs(total - 100) < 2 ? 'var(--text-success)' : 'var(--text-danger)';
+  }
+}
+
+function parseHourPctPaste() {
+  const raw = document.getElementById('hourpct-paste').value.trim();
+  if (!raw) { document.getElementById('hourpct-parse-status').textContent = '⚠ 請先貼上資料'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const days = getDays();
+  let parsed = [];
+
+  for (const line of lines) {
+    // Split by tab or multiple spaces
+    const cells = line.split(/\t|  +/).map(c => c.trim()).filter(c => c.length > 0);
+    if (cells.length < 4) continue;
+
+    // Try to find 4 numeric values (skip leading date/label columns)
+    const nums = [];
+    for (const c of cells) {
+      const n = parseFloat(c.replace('%', '').trim());
+      if (!isNaN(n) && n >= 0 && n <= 100) nums.push(n);
+    }
+    if (nums.length >= 4) {
+      parsed.push({ '凌晨': nums[0] / 100, '盤中': nums[1] / 100, '盤後': nums[2] / 100, '晚上': nums[3] / 100 });
+    }
+  }
+
+  if (parsed.length === 0) {
+    document.getElementById('hourpct-parse-status').textContent = '✗ 無法解析，請確認格式（Tab 分隔，4個數值欄）';
+    document.getElementById('hourpct-parse-status').style.color = 'var(--text-danger)';
+    return;
+  }
+
+  // Fill into config.dayHourPct
+  if (!config.dayHourPct) config.dayHourPct = [];
+  while (config.dayHourPct.length < config.totalDays) config.dayHourPct.push({ ...config.hourPct });
+
+  parsed.forEach((p, i) => {
+    if (i < config.totalDays) config.dayHourPct[i] = p;
+  });
+
+  renderHourPctTable();
+  document.getElementById('hourpct-parse-status').textContent = `✓ 成功解析 ${parsed.length} 天的資料，請確認表格後儲存設定`;
+  document.getElementById('hourpct-parse-status').style.color = 'var(--text-success)';
+}
+
+function saveSettings() {
+  config.name = document.getElementById('s-name').value || config.name;
+  config.startDate = document.getElementById('s-start').value || config.startDate;
+  config.totalDays = parseInt(document.getElementById('s-days').value) || config.totalDays;
+  config.targets.lv1.qty = parseInt(document.getElementById('s-lv1-qty').value) || config.targets.lv1.qty;
+  config.targets.lv1.rev = parseInt(document.getElementById('s-lv1-rev').value) || config.targets.lv1.rev;
+  config.targets.lv2.qty = parseInt(document.getElementById('s-lv2-qty').value) || config.targets.lv2.qty;
+  config.targets.lv2.rev = parseInt(document.getElementById('s-lv2-rev').value) || config.targets.lv2.rev;
+  config.targets.lv3.qty = parseInt(document.getElementById('s-lv3-qty').value) || config.targets.lv3.qty;
+  config.targets.lv3.rev = parseInt(document.getElementById('s-lv3-rev').value) || config.targets.lv3.rev;
+  config.plans.forEach(p => {
+    p.lv1 = parseInt(document.getElementById('ps-' + p.id + '-lv1')?.value) || p.lv1;
+    p.lv2 = parseInt(document.getElementById('ps-' + p.id + '-lv2')?.value) || p.lv2;
+    p.lv3 = parseInt(document.getElementById('ps-' + p.id + '-lv3')?.value) || p.lv3;
+  });
+  const newPct = [];
+  for (let i = 0; i < config.totalDays; i++) {
+    newPct.push((parseFloat(document.getElementById('dp-' + i)?.value) || 0) / 100);
+  }
+  const total = newPct.reduce((s, v) => s + v, 0);
+  if (Math.abs(total - 1) > 0.02) {
+    alert('逐日分布合計為 ' + Math.round(total * 100) + '%，請調整為 100% 再儲存。');
+    return;
+  }
+  config.dayPct = newPct;
+
+  // Save dayHourPct from table inputs
+  const slots = ['凌晨', '盤中', '盤後', '晚上'];
+  const newDayHourPct = [];
+  for (let i = 0; i < config.totalDays; i++) {
+    const row = {};
+    let rowTotal = 0;
+    slots.forEach(s => {
+      const v = (parseFloat(document.getElementById(`hp-${i}-${s}`)?.value) || 0) / 100;
+      row[s] = v;
+      rowTotal += v;
+    });
+    if (rowTotal > 0) newDayHourPct.push(row);
+    else newDayHourPct.push(config.dayHourPct?.[i] || { ...config.hourPct });
+  }
+  config.dayHourPct = newDayHourPct;
+
+  save();
+  updateDashboard();
+  renderDaySelect();
+  alert('設定已儲存！');
+}
+
+function resetAll() {
+  if (!confirm('確定要重置所有填入的數據嗎？（設定不會被清除）')) return;
+  appState = { currentDay: 0, scenario: 'lv1', days: [] };
+  save();
+  renderDaySelect();
+  renderQtyInputs();
+  updateDashboard();
+  alert('數據已重置。');
+}
+
+function switchTab(t) {
+  ['track', 'forecast', 'input', 'settings'].forEach((id, idx) => {
+    document.getElementById('tab-' + id).classList.toggle('active', id === t);
+    document.querySelectorAll('.tab')[idx].classList.toggle('active', id === t);
+  });
+  if (t === 'forecast') renderForecast();
+  if (t === 'input') { renderDaySelect(); renderQtyInputs(); loadDayIntoForm(appState.currentDay); renderDaySummary(); }
+  if (t === 'settings') {
+    document.getElementById('s-name').value = config.name;
+    document.getElementById('s-start').value = config.startDate;
+    document.getElementById('s-days').value = config.totalDays;
+    document.getElementById('s-lv1-qty').value = config.targets.lv1.qty;
+    document.getElementById('s-lv1-rev').value = config.targets.lv1.rev;
+    document.getElementById('s-lv2-qty').value = config.targets.lv2.qty;
+    document.getElementById('s-lv2-rev').value = config.targets.lv2.rev;
+    document.getElementById('s-lv3-qty').value = config.targets.lv3.qty;
+    document.getElementById('s-lv3-rev').value = config.targets.lv3.rev;
+    renderPlanSettings();
+    renderDayPctSettings();
+    renderHourPctTable();
+  }
+}
+
+renderDaySelect();
+renderQtyInputs();
+updateDashboard();
+</script>
+</body>
+</html>
