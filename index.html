@@ -265,6 +265,27 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
     </div>
     <button class="run-btn" onclick="saveSettings()"><i class="ti ti-settings" aria-hidden="true"></i> 儲存設定</button>
     <button class="run-btn" style="margin-left:8px;color:var(--text-danger)" onclick="resetAll()"><i class="ti ti-refresh" aria-hidden="true"></i> 重置所有數據</button>
+
+    <div class="input-card" style="margin-top:16px">
+      <h3>📤 匯出 / 匯入數據代碼</h3>
+      <div class="sub">將目前填入的所有數據壓縮成一串代碼，貼給同事後對方匯入即可同步數據。</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="run-btn" style="margin-top:0" onclick="exportData()"><i class="ti ti-copy" aria-hidden="true"></i> 產生數據代碼</button>
+        <button class="run-btn" style="margin-top:0" onclick="showImport()"><i class="ti ti-download" aria-hidden="true"></i> 匯入數據代碼</button>
+      </div>
+      <div id="export-box" style="display:none;margin-top:12px">
+        <div class="ib-label">數據代碼（全選複製後貼給同事）</div>
+        <textarea id="export-text" rows="4" readonly style="width:100%;font-size:11px;font-family:monospace;padding:8px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);resize:none;cursor:text" onclick="this.select()"></textarea>
+        <button class="run-btn" style="margin-top:8px" onclick="copyExport()"><i class="ti ti-clipboard" aria-hidden="true"></i> 一鍵複製</button>
+        <span id="copy-status" style="font-size:12px;color:var(--text-success);margin-left:8px"></span>
+      </div>
+      <div id="import-box" style="display:none;margin-top:12px">
+        <div class="ib-label">貼上同事給你的數據代碼</div>
+        <textarea id="import-text" rows="4" style="width:100%;font-size:11px;font-family:monospace;padding:8px;border:0.5px solid var(--border-md);border-radius:var(--radius-md);background:var(--bg-secondary);color:var(--text-primary);resize:none"></textarea>
+        <button class="run-btn" style="margin-top:8px" onclick="importData()"><i class="ti ti-check" aria-hidden="true"></i> 匯入並更新儀表板</button>
+        <span id="import-status" style="font-size:12px;margin-left:8px"></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -943,6 +964,69 @@ function switchTab(t) {
 renderDaySelect();
 renderQtyInputs();
 updateDashboard();
+
+function exportData() {
+  const payload = {
+    v: 1,
+    cfg: config,
+    st: appState
+  };
+  const json = JSON.stringify(payload);
+  const encoded = btoa(unescape(encodeURIComponent(json)));
+  document.getElementById('export-text').value = encoded;
+  document.getElementById('export-box').style.display = 'block';
+  document.getElementById('import-box').style.display = 'none';
+}
+
+function copyExport() {
+  const text = document.getElementById('export-text');
+  text.select();
+  navigator.clipboard.writeText(text.value).then(() => {
+    const el = document.getElementById('copy-status');
+    el.textContent = '✓ 已複製！';
+    setTimeout(() => { el.textContent = ''; }, 2500);
+  }).catch(() => {
+    document.execCommand('copy');
+    const el = document.getElementById('copy-status');
+    el.textContent = '✓ 已複製！';
+    setTimeout(() => { el.textContent = ''; }, 2500);
+  });
+}
+
+function showImport() {
+  document.getElementById('import-box').style.display = 'block';
+  document.getElementById('export-box').style.display = 'none';
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-status').textContent = '';
+}
+
+function importData() {
+  const encoded = document.getElementById('import-text').value.trim();
+  const statusEl = document.getElementById('import-status');
+  if (!encoded) {
+    statusEl.textContent = '⚠ 請先貼上代碼';
+    statusEl.style.color = 'var(--text-warning)';
+    return;
+  }
+  try {
+    const json = decodeURIComponent(escape(atob(encoded)));
+    const payload = JSON.parse(json);
+    if (!payload.v || !payload.cfg || !payload.st) throw new Error('格式錯誤');
+    config = payload.cfg;
+    appState = payload.st;
+    save();
+    updateDashboard();
+    renderDaySelect();
+    renderQtyInputs();
+    statusEl.textContent = '✓ 匯入成功！儀表板已更新';
+    statusEl.style.color = 'var(--text-success)';
+    document.getElementById('import-box').style.display = 'none';
+    switchTab('track');
+  } catch(e) {
+    statusEl.textContent = '✗ 代碼有誤，請確認是否完整複製';
+    statusEl.style.color = 'var(--text-danger)';
+  }
+}
 </script>
 </body>
 </html>
