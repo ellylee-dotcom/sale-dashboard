@@ -131,7 +131,7 @@ body{font-family:var(--font);background:var(--bg-tertiary);color:var(--text-prim
       <div class="metric-card"><div class="label">活動進行天數</div><div class="value" id="m-day">0天</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-day-bar"></div></div><div class="sub" id="m-day-sub">共N天</div></div>
       <div class="metric-card"><div class="label">累計營收</div><div class="value" id="m-rev">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-rev-bar"></div></div><div class="sub" id="m-rev-sub">尚未填入</div></div>
       <div class="metric-card"><div class="label">累計套數</div><div class="value" id="m-qty">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-qty-bar"></div></div><div class="sub" id="m-qty-sub">尚未填入</div></div>
-      <div class="metric-card"><div class="label">預估總營收</div><div class="value" id="m-proj">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-proj-bar"></div></div><div class="sub" id="m-proj-sub">以日均推算</div></div>
+      <div class="metric-card"><div class="label">預估總營收</div><div class="value" id="m-proj">—</div><div class="metric-bar-wrap"><div class="metric-bar" id="m-proj-bar"></div></div><div class="sub" id="m-proj-sub">以逐日分布反推</div></div>
     </div>
     <div class="section-title">重點方案</div>
     <div class="plans-grid" id="plans-grid"></div>
@@ -416,8 +416,21 @@ function updateDashboard() {
   const lfd = lastFilledDay();
   const dwd = daysWithData();
   const totalRev = lfd >= 0 ? accumRev(lfd) : 0;
-  const dayAvg = dwd > 0 ? totalRev / dwd : 0;
-  const projRev = dayAvg * config.totalDays;
+  // 逐日分布反推：每天實際營收 ÷ 該天預估佔比 = 反推總營收，取有數據的天加權平均
+  let projRev = 0;
+  if (dwd > 0) {
+    let sumWeighted = 0, sumWeight = 0;
+    for (let i = 0; i < config.totalDays; i++) {
+      const dayRev = getDayData(i).totalRev || 0;
+      const dayPct = config.dayPct[i] || 0;
+      if (dayRev > 0 && dayPct > 0) {
+        const implied = dayRev / dayPct; // 該天反推的總營收
+        sumWeighted += implied * dayPct; // 以佔比加權（較重要的天權重較大）
+        sumWeight += dayPct;
+      }
+    }
+    projRev = sumWeight > 0 ? sumWeighted / sumWeight : 0;
+  }
   const tq = totalQtyAccum();
 
   document.getElementById('event-range').textContent =
